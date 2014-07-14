@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, height=device-height,initial-scale=1.0, user-scalable=no">
+	<style type="text/css">
+        ::-webkit-scrollbar {
+            width: 15px;
+        }    
+        ::-webkit-scrollbar-track {
+            -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.8); 
+            border-radius: 10px;
+        }   
+        ::-webkit-scrollbar-thumb {
+        	background-color: #777;
+            border-radius: 4px;
+            -webkit-box-shadow: inset 0 0 4px rgba(0,0,0,1.0); 
+        }
+	    body,html{
+	    	width:100%; height: 100%; 
+	    	overflow: hidden;
+	    	background:#333;
+	    	box-sizing: border-box;
+            position: absolute; 
+            top: 0; bottom: 0; left: 0; right: 0;
+            padding:0;margin:0;
+            padding-bottom: 35pt
+        }
+        #NotesList{
+            position: relative; 
+            width: 100%;
+            height: 100%;
+        	margin:0;
+        	padding:10px;
+        	box-sizing: border-box;
+        	overflow: auto;
+        }
+        .NoteLi{
+        	display:none;
+	        position:relative;
+	        width:100%;
+	        margin-top:10px;
+	     }
+        .NoteText{
+        	font-size:1.2em;font-family:Consolas;outline:none;
+	        padding:10px;padding-right:40px;
+	        height:50px;
+	        width:100%;
+	        -webkit-box-sizing: border-box;
+	        box-sizing: border-box;
+	        border:2px solid #000;border-radius:10px;
+	        overflow:hidden;
+	        box-shadow: 5px 5px 5px #000;
+        }
+        .RemoveButton{
+        	box-sizing: border-box;
+        	color:#FFF;font-size:1em;font-weight:bold;
+	        position:absolute;
+            right:0px;
+            top:0px;
+	        height:25pt;width:25pt;
+	        background-image:linear-gradient(to top,  #700 0%, #C00 100%);
+	        border:0px solid #000;border-radius:0px 7px 0px;
+	        border-top: 2px solid #000;
+	        border-right: 2px solid #000
+        }
+        #LowerPanel{
+        	box-sizing: border-box;        	
+        	background-image:linear-gradient(to top,  #000 50%, #222 100%);
+            position: fixed; margin:0;bottom: 0; height:35pt;width:100%;padding:10px;
+            box-shadow: 0px -2px 5px #111;
+        }
+        #AddButton{
+        	    box-sizing: border-box;
+        	    font-size:1em; font-weight:bold; color:#FFF;
+	    	    background-image:linear-gradient(to top,  #050 0%, #0C0 100%);
+	    	    border:0px solid #ccc;border-radius:8px;
+	            height:25pt;width:25pt;
+        }
+	</style>
+</head>
+<body>
+	<ul id="NotesList">
+	     <li id="TextTemplate" class="NoteLi">
+	         <textarea class="NoteText"
+                       contentEditable="true"
+	                   onkeyup="autoresize(this)" 
+                       spellcheck="false"
+	                   placeholder='Add text here...'></textarea>
+	         <button onclick="clickDelete(this)" class="RemoveButton" 
+	                 type="button">-</button>          
+         </li>
+    </ul>
+    <div id="LowerPanel">
+		    <button onclick="clickClone()" id="AddButton" type="button">+</button>
+	</div>
+    <script>
+	//RS911324850CH
+	var IdIndex;
+	if (localStorage.SavedIndex) {
+		IdIndex=parseInt(localStorage.SavedIndex)
+	}else{
+		IdIndex=0;
+		localStorage.SavedIndex=0;
+	};
+	TextList=JSON.parse(localStorage.getItem("TextList"));
+	if (TextList==null) {
+        TextList={}
+	};	
+	function SaveText(element){
+		TextList[element.parentNode.id]=element.value;
+//		console.log(element)
+//		console.log(TextList)		
+		localStorage.setItem("TextList",JSON.stringify(TextList));
+	}; 
+	function autoresize(textarea) { 
+		textarea.style.height = '50px'; 
+		textarea.style.height = (parseInt(textarea.scrollHeight) + 20 )+ 'px'; 
+		SaveText(textarea);
+	};
+	function CreateEntry (id,text) {
+        var newEl=Template.cloneNode(true);
+		newEl.id=id;
+//		console.log(id+" con texto "+text)
+//		console.log(newEl)
+		newEl.childNodes[1].value=text;
+		newEl.style.display="block";
+		insertAfter(newEl,Template);
+		autoresize(newEl.childNodes[1])
+		// body...
+	}
+    // create new element from template
+	function clickClone () {
+		TextList[IdIndex]="";
+        CreateEntry(IdIndex,"");
+        localStorage.setItem("TextList",JSON.stringify(TextList));
+		IdIndex+=1;
+		localStorage.SavedIndex=IdIndex;
+	};
+	function clickDelete(element){
+		parentElement=element.parentNode;
+		id=parentElement.id;
+		parentElement.parentNode.removeChild(parentElement);
+		delete TextList[id]
+		localStorage.setItem("TextList",JSON.stringify(TextList));
+	};	
+	//create function, it expects 2 values.
+    function insertAfter(newElement,targetElement) {
+    //target is what you want it to go after. Look for this elements parent.
+        var parent = targetElement.parentNode; 
+        //if the parents lastchild is the targetElement...
+        if(parent.lastchild == targetElement) {
+            //add the newElement after the target element.
+            parent.appendChild(newElement);
+            } 
+        else {
+            // else the target has siblings, insert the new element between the target and it's next sibling.
+            parent.insertBefore(newElement, targetElement.nextSibling);
+        }
+    };
+    function ResizeAll() {
+            var Textareas=document.getElementsByTagName("textarea");
+            for (var i=0;i<Textareas.length;i++) {
+               autoresize(Textareas[i]);
+            }; } ;
+    var resizeTimeoutId;        
+    function ResizeAllManaged() {
+         window.clearTimeout(resizeTimeoutId); 
+         resizeTimeoutId = window.setTimeout('ResizeAll();', 10); 
+    };
+
+
+    //ON LOADING
+        Template=document.getElementById("TextTemplate");
+        for (var entry in TextList) {
+        	CreateEntry(entry,TextList[entry]);
+         }; 
+         window.addEventListener("resize", function(){
+           ResizeAllManaged();
+         });
+//		document.getElementById("Text").value=localStorage.SavedText;
+	</script>	
+</body>
+</html>
